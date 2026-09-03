@@ -1,40 +1,40 @@
-# Aula GitHub Actions
+# Aula — Testes Unitários e GitHub Actions
 
-Projeto da Aula 09: cadastro de pessoa fisica com validacao de CPF, data de nascimento, idade para CNH e e-mail.
+Validação de cadastro de Pessoa Física com suíte de testes unitários — material das
+Aulas 08 e 09 de Desenvolvimento de Sistemas para Web/Mobile IV (Engenharia de
+Software — UGV, Prof. Marcos Nielsen).
 
-## Aula 8 concluida
+## O que tem aqui
 
-O projeto tambem implementa os contratos da Aula 8:
+| Arquivo | Papel |
+|---|---|
+| `pessoaFisica.js` | Os validadores (código sob teste): nome, CPF, e-mail, data de nascimento e CNH |
+| `pessoaFisica.test.js` | A suíte de testes unitários (runner nativo do Node) |
+| `index.html` | Página com o formulário de cadastro usando os mesmos validadores |
 
-- `validar(pessoa, hoje)` devolve todos os erros sem levantar excecao;
-- `garantirValido(pessoa, hoje)` levanta `DadosInvalidosError` quando os dados sao invalidos;
-- `cadastrar` recebe repositorio e notificador por injecao de dependencia;
-- os testes usam uma data fixa e mocks nativos do `node:test`.
+## As regras do cadastro
 
-## Rodar localmente
+| Campo | Regra |
+|---|---|
+| `nome` | obrigatório; 3 a 80 caracteres; nome e sobrenome; só letras, espaço, apóstrofo e hífen |
+| `cpf` | 11 dígitos (aceita máscara); não pode ter todos os dígitos iguais; dígitos verificadores corretos |
+| `email` | uma `@`, algo antes, domínio com ponto, sem espaços |
+| `data_nascimento` | formato `AAAA-MM-DD`; data que existe; não futura; até 120 anos |
+| `possui_cnh` | booleano de verdade; se `true`, idade >= 18 (comparando ano, mês e dia) |
 
-Requer Node.js 20 ou superior. O projeto nao possui dependencias npm.
+## Como rodar os testes
+
+Requisito: Node 18+ (sem `npm install` — o runner e os asserts são nativos).
 
 ```bash
-node --version
 node --test
 ```
 
-Para abrir o formulario, abra `index.html` no navegador ou use o Live Server do VS Code. O navegador e os testes usam a mesma funcao `validar` de `pessoaFisica.js`.
+A suíte cobre: o caminho feliz, um caso de borda por campo, as duas fronteiras dos
+18 anos (faz 18 hoje pode; faz 18 amanhã não pode), a acumulação de todos os erros
+de uma vez e o contrato da exceção (`DadosInvalidosError`).
 
-## GitHub Actions
+## Como usar a página
 
-O workflow `.github/workflows/testes.yml` executa `node --test` em pushes e pull requests para `main`. O job se chama `testar` e deve ser selecionado como status check obrigatorio nas regras da branch.
-
-## Publicacao
-
-```bash
-git init
-git add .
-git commit -m "feat: cadastro de pessoa fisica com testes"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/aula-github-actions.git
-git push -u origin main
-```
-
-Depois, no GitHub: `Settings > Rules > Rulesets > New branch ruleset`. Crie `proteger-main`, ative-o, inclua a default branch, exija pull request, exija status checks e adicione o check existente `testar` em *Suggestions*. Mantenha a lista de bypass vazia.
+Abra o `index.html` no navegador. O formulário chama `validar()` e mostra todos os
+erros de uma vez (o contrato do 400) ou a mensagem de cadastro válido.
