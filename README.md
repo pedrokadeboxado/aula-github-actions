@@ -2,6 +2,15 @@
 
 Projeto da Aula 09: cadastro de pessoa fisica com validacao de CPF, data de nascimento, idade para CNH e e-mail.
 
+## Aula 8 concluida
+
+O projeto tambem implementa os contratos da Aula 8:
+
+- `validar(pessoa, hoje)` devolve todos os erros sem levantar excecao;
+- `garantirValido(pessoa, hoje)` levanta `DadosInvalidosError` quando os dados sao invalidos;
+- `cadastrar` recebe repositorio e notificador por injecao de dependencia;
+- os testes usam uma data fixa e mocks nativos do `node:test`.
+
 ## Rodar localmente
 
 Requer Node.js 20 ou superior. O projeto nao possui dependencias npm.

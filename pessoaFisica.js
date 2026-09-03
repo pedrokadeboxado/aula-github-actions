@@ -41,7 +41,21 @@ function idadeEmAnos(dataNascimento, hoje = new Date()) {
   return idade;
 }
 
-function validar(pessoa) {
+class DadosInvalidosError extends Error {
+  constructor(erros) {
+    super(erros.join('; '));
+    this.name = 'DadosInvalidosError';
+    this.erros = erros;
+  }
+}
+
+function garantirValido(pessoa, hoje = new Date()) {
+  const erros = validar(pessoa, hoje);
+  if (erros.length > 0) throw new DadosInvalidosError(erros);
+  return true;
+}
+
+function validar(pessoa, hoje = new Date()) {
   const erros = [];
   const nome = String(pessoa?.nome ?? '').trim();
   const cpf = String(pessoa?.cpf ?? '').trim();
@@ -55,10 +69,10 @@ function validar(pessoa) {
   if (!dataNascimento) erros.push('data_nascimento: e obrigatoria');
   else if (!dataValida(dataNascimento)) erros.push('data_nascimento: invalida');
   else {
-    const hoje = new Date();
     const nascimento = new Date(`${dataNascimento}T00:00:00`);
-    if (nascimento > hoje) erros.push('data_nascimento: nao pode estar no futuro');
-    else if (possuiCnh && idadeEmAnos(dataNascimento, hoje) < 18) erros.push('possui_cnh: so a partir de 18 anos');
+    const dataAtual = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    if (nascimento > dataAtual) erros.push('data_nascimento: nao pode estar no futuro');
+    else if (possuiCnh && idadeEmAnos(dataNascimento, dataAtual) < 18) erros.push('possui_cnh: so a partir de 18 anos');
   }
   if (!email) erros.push('email: e obrigatorio');
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) erros.push('email: invalido');
@@ -67,5 +81,5 @@ function validar(pessoa) {
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { validar, cpfValido, dataValida, idadeEmAnos };
+  module.exports = { validar, garantirValido, DadosInvalidosError, cpfValido, dataValida, idadeEmAnos };
 }
