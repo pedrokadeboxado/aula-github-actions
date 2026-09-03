@@ -38,3 +38,15 @@ de uma vez e o contrato da exceção (`DadosInvalidosError`).
 
 Abra o `index.html` no navegador. O formulário chama `validar()` e mostra todos os
 erros de uma vez (o contrato do 400) ou a mensagem de cadastro válido.
+
+## Deploy automatico no Render
+
+O arquivo `render.yaml` configura este projeto como um Static Site. No Render, use
+**New > Blueprint**, conecte este repositorio e selecione a branch `main`. A cada
+push aceito na `main`, o Render publica novamente o `index.html` automaticamente.
+
+Fluxo de CI/CD:
+
+```text
+commit e push -> GitHub Actions testa -> Render atualiza o site
+```

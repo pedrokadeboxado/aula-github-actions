@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: aula-github-actions
+    runtime: static
+    buildCommand: echo "Sem build: site estatico"
+    staticPublishPath: .
+    autoDeploy: true
