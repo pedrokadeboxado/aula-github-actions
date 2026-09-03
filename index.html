@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadastro de Pessoa Fisica</title>
+  <style>
+    :root { color-scheme: light; --ink: #182229; --muted: #5d6b70; --paper: #fffdf7; --accent: #e56b3f; --line: #d9d5c9; --ok: #247a54; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #dce8e4; color: var(--ink); font: 16px/1.5 Georgia, 'Times New Roman', serif; }
+    main { width: min(680px, calc(100% - 32px)); margin: 48px auto; }
+    header { margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; letter-spacing: 0; }
+    header p { margin: 0; color: var(--muted); }
+    form { background: var(--paper); border: 1px solid var(--line); border-top: 7px solid var(--accent); padding: clamp(24px, 6vw, 48px); box-shadow: 9px 9px 0 rgba(24, 34, 41, .1); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    label { display: grid; gap: 6px; font-weight: bold; }
+    label:first-child { grid-column: 1 / -1; }
+    input { width: 100%; padding: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; }
+    input:focus { outline: 3px solid rgba(229, 107, 63, .3); border-color: var(--accent); }
+    .checkbox { display: flex; align-items: center; gap: 10px; margin-top: 20px; font-weight: normal; }
+    .checkbox input { width: 18px; height: 18px; }
+    button { margin-top: 28px; padding: 13px 20px; border: 0; background: var(--ink); color: white; cursor: pointer; font: bold 16px Georgia, serif; }
+    button:hover { background: var(--accent); }
+    #resultado { margin: 22px 0 0; }
+    #resultado.sucesso { color: var(--ok); font-weight: bold; }
+    #resultado ul { margin: 0; padding-left: 22px; color: #a33f2a; }
+    @media (max-width: 560px) { main { margin: 24px auto; } .grid { grid-template-columns: 1fr; } label:first-child { grid-column: auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Cadastro de pessoa fisica</h1>
+      <p>Preencha os dados para validar o cadastro.</p>
+    </header>
+    <form id="cadastro">
+      <div class="grid">
+        <label>Nome completo <input name="nome" autocomplete="name"></label>
+        <label>CPF <input name="cpf" placeholder="000.000.000-00" inputmode="numeric"></label>
+        <label>Data de nascimento <input name="data_nascimento" type="date"></label>
+        <label>E-mail <input name="email" type="email" autocomplete="email"></label>
+      </div>
+      <label class="checkbox"><input name="possui_cnh" type="checkbox"> Possui CNH</label>
+      <button type="submit">Validar cadastro</button>
+      <output id="resultado" aria-live="polite"></output>
+    </form>
+  </main>
+  <script src="pessoaFisica.js"></script>
+  <script>
+    document.querySelector('#cadastro').addEventListener('submit', (evento) => {
+      evento.preventDefault();
+      const dados = Object.fromEntries(new FormData(evento.currentTarget));
+      dados.possui_cnh = evento.currentTarget.possui_cnh.checked;
+      const erros = validar(dados);
+      const resultado = document.querySelector('#resultado');
+      if (erros.length === 0) {
+        resultado.className = 'sucesso';
+        resultado.textContent = 'Cadastro valido!';
+        return;
+      }
+      resultado.className = '';
+      resultado.innerHTML = `<ul>${erros.map((erro) => `<li>${erro}</li>`).join('')}</ul>`;
+    });
+  </script>
+</body>
+</html>
