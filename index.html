@@ -1,67 +1,148 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cadastro de Pessoa Fisica</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Pessoa Física — Aula 08/09</title>
   <style>
-    :root { color-scheme: light; --ink: #182229; --muted: #5d6b70; --paper: #fffdf7; --accent: #e56b3f; --line: #d9d5c9; --ok: #247a54; }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background: #dce8e4; color: var(--ink); font: 16px/1.5 Georgia, 'Times New Roman', serif; }
-    main { width: min(680px, calc(100% - 32px)); margin: 48px auto; }
-    header { margin-bottom: 24px; }
-    h1 { margin: 0 0 8px; font-size: clamp(2rem, 6vw, 3.5rem); line-height: 1; letter-spacing: 0; }
-    header p { margin: 0; color: var(--muted); }
-    form { background: var(--paper); border: 1px solid var(--line); border-top: 7px solid var(--accent); padding: clamp(24px, 6vw, 48px); box-shadow: 9px 9px 0 rgba(24, 34, 41, .1); }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-    label { display: grid; gap: 6px; font-weight: bold; }
-    label:first-child { grid-column: 1 / -1; }
-    input { width: 100%; padding: 12px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: inherit; }
-    input:focus { outline: 3px solid rgba(229, 107, 63, .3); border-color: var(--accent); }
-    .checkbox { display: flex; align-items: center; gap: 10px; margin-top: 20px; font-weight: normal; }
-    .checkbox input { width: 18px; height: 18px; }
-    button { margin-top: 28px; padding: 13px 20px; border: 0; background: var(--ink); color: white; cursor: pointer; font: bold 16px Georgia, serif; }
-    button:hover { background: var(--accent); }
-    #resultado { margin: 22px 0 0; }
-    #resultado.sucesso { color: var(--ok); font-weight: bold; }
-    #resultado ul { margin: 0; padding-left: 22px; color: #a33f2a; }
-    @media (max-width: 560px) { main { margin: 24px auto; } .grid { grid-template-columns: 1fr; } label:first-child { grid-column: auto; } }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 480px;
+      margin: 40px auto;
+      padding: 0 16px;
+      color: #222;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      box-sizing: border-box;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+    }
+
+    .cnh {
+      margin-top: 12px;
+    }
+
+    .cnh label {
+      display: inline;
+      font-weight: normal;
+    }
+
+    button {
+      margin-top: 16px;
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      background: #2c5f2d;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #234b24;
+    }
+
+    #resultado {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    #resultado.erro {
+      display: block;
+      background: #fdecea;
+      border: 1px solid #c0392b;
+      color: #c0392b;
+    }
+
+    #resultado.ok {
+      display: block;
+      background: #eafaf1;
+      border: 1px solid #1e8449;
+      color: #1e8449;
+    }
+
+    #resultado ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
   </style>
 </head>
+
 <body>
-  <main>
-    <header>
-      <h1>Cadastro de pessoa fisica</h1>
-      <p>Preencha os dados para validar o cadastro.</p>
-    </header>
-    <form id="cadastro">
-      <div class="grid">
-        <label>Nome completo <input name="nome" autocomplete="name"></label>
-        <label>CPF <input name="cpf" placeholder="000.000.000-00" inputmode="numeric"></label>
-        <label>Data de nascimento <input name="data_nascimento" type="date"></label>
-        <label>E-mail <input name="email" type="email" autocomplete="email"></label>
-      </div>
-      <label class="checkbox"><input name="possui_cnh" type="checkbox"> Possui CNH</label>
-      <button type="submit">Validar cadastro</button>
-      <output id="resultado" aria-live="polite"></output>
-    </form>
-  </main>
+  <h1>Cadastro de Pessoa Física</h1>
+  <p>Validação da Aula 08 — os mesmos validadores da suíte de testes.</p>
+
+  <form id="formulario" novalidate>
+    <label for="nome">Nome completo</label>
+    <input type="text" id="nome" placeholder="Ana Maria Souza">
+
+    <label for="cpf">CPF</label>
+    <input type="text" id="cpf" placeholder="529.982.247-25">
+
+    <label for="email">E-mail</label>
+    <input type="email" id="email" placeholder="ana.souza@escola.com.br">
+
+    <label for="data_nascimento">Data de nascimento</label>
+    <input type="date" id="data_nascimento">
+
+    <div class="cnh">
+      <input type="checkbox" id="possui_cnh">
+      <label for="possui_cnh">Possui CNH</label>
+    </div>
+
+    <button type="submit">Cadastrar</button>
+  </form>
+
+
+  <div id="resultado"></div>
+
   <script src="pessoaFisica.js"></script>
   <script>
-    document.querySelector('#cadastro').addEventListener('submit', (evento) => {
+    const formulario = document.getElementById('formulario');
+    const resultado = document.getElementById('resultado');
+
+    formulario.addEventListener('submit', (evento) => {
       evento.preventDefault();
-      const dados = Object.fromEntries(new FormData(evento.currentTarget));
-      dados.possui_cnh = evento.currentTarget.possui_cnh.checked;
-      const erros = validar(dados);
-      const resultado = document.querySelector('#resultado');
-      if (erros.length === 0) {
-        resultado.className = 'sucesso';
-        resultado.textContent = 'Cadastro valido!';
-        return;
+
+      const pessoa = {
+        nome: document.getElementById('nome').value,
+        cpf: document.getElementById('cpf').value,
+        email: document.getElementById('email').value,
+        data_nascimento: document.getElementById('data_nascimento').value,
+        possui_cnh: document.getElementById('possui_cnh').checked,
+      };
+
+      const erros = validar(pessoa);
+
+      if (erros.length) {
+        resultado.className = 'erro';
+        resultado.innerHTML = '<strong>Corrija os campos abaixo:</strong><ul>' +
+          erros.map((e) => '<li>' + e + '</li>').join('') + '</ul>';
+      } else {
+        resultado.className = 'ok';
+        resultado.textContent = 'Cadastro válido! ' + pessoa.nome.trim() + ' pode ser salvo.';
       }
-      resultado.className = '';
-      resultado.innerHTML = `<ul>${erros.map((erro) => `<li>${erro}</li>`).join('')}</ul>`;
     });
   </script>
 </body>
+
 </html>

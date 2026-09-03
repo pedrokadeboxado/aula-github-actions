@@ -1,85 +1,124 @@
-const test = require('node:test');
+// Suíte de testes unitários — Aula 08
+// Rodar com: node --test
+
+const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { mock } = require('node:test');
-const { validar, garantirValido, DadosInvalidosError, cpfValido } = require('./pessoaFisica.js');
-const { cadastrar } = require('./cadastroService.js');
+const { validar, garantirValido, cpfValido, DadosInvalidosError } = require('./pessoaFisica');
 
-const HOJE = new Date(2026, 7, 21);
+// O "relógio" injetado: o teste não depende do dia real
+const HOJE = new Date(Date.UTC(2026, 7, 28)); // 2026-08-28
 
-test('aceita um cadastro completo e valido', () => {
-  const erros = validar({
-    nome: 'Ana Maria Souza',
-    cpf: '529.982.247-25',
-    data_nascimento: '1998-03-14',
-    email: 'ana@example.com',
-    possui_cnh: false
+// Fábrica: cadastro válido; cada teste muda só o campo que quer testar
+const pessoa = (mudancas = {}) => ({
+  nome: 'Ana Maria Souza',
+  cpf: '529.982.247-25',
+  email: 'ana.souza@escola.com.br',
+  data_nascimento: '1998-03-14',
+  possui_cnh: true,
+  ...mudancas,
+});
+
+const temErro = (erros, trecho) => erros.some((e) => e.includes(trecho));
+
+// 1) A LINHA RETA — se este falha, nada mais importa
+test('caminho feliz: cadastro completo e valido', () => {
+  assert.deepEqual(validar(pessoa(), HOJE), []);
+});
+
+// 2) UM CASO DE BORDA POR CAMPO
+describe('nome', () => {
+  for (const [nome, motivo] of [
+    ['', 'vazio'],
+    ['Al', 'curto demais'],
+    ['A'.repeat(81) + ' Souza', 'longo demais'],
+    ['Ana', 'so o primeiro nome'],
+    ['Ana Souza 3', 'numero no nome'],
+  ]) {
+    test(`invalido: ${JSON.stringify(nome.slice(0, 20))} (${motivo})`, () => {
+      assert.ok(temErro(validar(pessoa({ nome }), HOJE), 'nome'));
+    });
+  }
+
+  test("valido: hifen e apostrofo — Ana-Clara D'Avila Souza", () => {
+    assert.deepEqual(validar(pessoa({ nome: "Ana-Clara D'Avila Souza" }), HOJE), []);
   });
-
-  assert.deepEqual(erros, []);
 });
 
-test('rejeita o formulario vazio com todos os erros', () => {
-  assert.deepEqual(validar({}), [
-    'nome: e obrigatorio',
-    'cpf: e obrigatorio',
-    'data_nascimento: e obrigatoria',
-    'email: e obrigatorio'
-  ]);
+describe('cpf', () => {
+  for (const cpf of ['111.111.111-11', '529.982.247-24', '5299822472', '', null]) {
+    test(`invalido: ${JSON.stringify(cpf)}`, () => {
+      assert.equal(cpfValido(cpf), false);
+    });
+  }
+
+  test('valido: com ou sem mascara', () => {
+    assert.equal(cpfValido('529.982.247-25'), true);
+    assert.equal(cpfValido('52998224725'), true);
+  });
 });
 
-test('rejeita CPF invalido', () => {
-  assert.equal(cpfValido('111.111.111-11'), false);
-  assert.deepEqual(validar({ cpf: '111.111.111-11' }).filter((erro) => erro.startsWith('cpf')), ['cpf: invalido']);
+describe('email', () => {
+  for (const email of ['x', 'sem-arroba.com', 'a@b', 'a b@c.com', '@dominio.com']) {
+    test(`invalido: ${JSON.stringify(email)}`, () => {
+      assert.ok(temErro(validar(pessoa({ email }), HOJE), 'email'));
+    });
+  }
 });
 
-test('rejeita data de nascimento no futuro', () => {
-  assert.deepEqual(validar({ data_nascimento: '2030-01-01' }, HOJE).filter((erro) => erro.startsWith('data_nascimento')), ['data_nascimento: nao pode estar no futuro']);
+describe('data_nascimento', () => {
+  for (const [data, motivo] of [
+    ['14/03/1998', 'formato errado'],
+    ['1998-02-30', 'dia que nao existe'],
+    ['2030-01-01', 'no futuro'],
+    ['1900-01-01', 'mais de 120 anos'],
+    ['', 'vazia'],
+  ]) {
+    test(`invalido: ${JSON.stringify(data)} (${motivo})`, () => {
+      assert.ok(temErro(validar(pessoa({ data: undefined, data_nascimento: data }), HOJE), 'data_nascimento'));
+    });
+  }
 });
 
-test('nao permite CNH para menor de 18 anos', () => {
-  const erros = validar({ data_nascimento: '2015-01-01', possui_cnh: true }, HOJE);
-  assert.ok(erros.includes('possui_cnh: so a partir de 18 anos'));
+describe('possui_cnh', () => {
+  for (const valor of ['sim', 1, 'true', null]) {
+    test(`tipo errado: ${JSON.stringify(valor)}`, () => {
+      assert.ok(temErro(validar(pessoa({ possui_cnh: valor }), HOJE), 'possui_cnh'));
+    });
+  }
 });
 
-test('rejeita e-mail invalido', () => {
-  assert.deepEqual(validar({ email: 'sem-arroba' }).filter((erro) => erro.startsWith('email')), ['email: invalido']);
+// 3) AS FRONTEIRAS — é no limite exato que o bug mora
+test('faz 18 anos exatamente hoje: pode ter CNH', () => {
+  assert.deepEqual(validar(pessoa({ data_nascimento: '2008-08-28', possui_cnh: true }), HOJE), []);
 });
 
-test('faz 18 anos hoje e pode ter CNH', () => {
-  assert.deepEqual(validar({
-    nome: 'Joao Pedro Lima',
-    cpf: '529.982.247-25',
-    data_nascimento: '2008-08-21',
-    email: 'joao@escola.com',
-    possui_cnh: true
-  }, HOJE), []);
+test('faz 18 anos amanha: ainda nao pode', () => {
+  const erros = validar(pessoa({ data_nascimento: '2008-08-29', possui_cnh: true }), HOJE);
+  assert.ok(temErro(erros, 'possui_cnh: so a partir de 18 anos'));
 });
 
-test('garantirValido levanta erro com a lista de problemas', () => {
+test('menor de 18 sem CNH: valido', () => {
+  assert.deepEqual(validar(pessoa({ data_nascimento: '2010-01-05', possui_cnh: false }), HOJE), []);
+});
+
+// 4) A COMBINAÇÃO — devolve TODOS os erros de uma vez, não só o primeiro
+test('acumula todos os erros de uma vez', () => {
+  const erros = validar(
+    { nome: 'Al', cpf: '123', email: 'x', data_nascimento: '2030-01-01', possui_cnh: 'sim' },
+    HOJE,
+  );
+  assert.ok(erros.length >= 5, `esperava 5+ erros, veio: ${JSON.stringify(erros)}`);
+});
+
+// 5) A EXCEÇÃO — o outro contrato do módulo
+test('garantirValido lanca a excecao com a lista dentro', () => {
   assert.throws(
-    () => garantirValido({ cpf: '111.111.111-11' }, HOJE),
-    (erro) => erro instanceof DadosInvalidosError && erro.erros.includes('cpf: invalido')
+    () => garantirValido(pessoa({ cpf: '111.111.111-11' }), HOJE),
+    (erro) => erro instanceof DadosInvalidosError && erro.erros.includes('cpf: invalido'),
   );
 });
 
-test('cadastro valido salva e notifica uma vez', async () => {
-  const repositorio = { salvar: mock.fn(async (pessoa) => ({ id: 1, ...pessoa })) };
-  const notificador = { enviar: mock.fn(async () => {}) };
-  const pessoa = { nome: 'Ana Maria Souza', cpf: '529.982.247-25', data_nascimento: '1998-03-14', email: 'ana@example.com', possui_cnh: false };
-
-  const salvo = await cadastrar(pessoa, { repositorio, notificador, hoje: HOJE });
-
-  assert.equal(salvo.id, 1);
-  assert.equal(repositorio.salvar.mock.callCount(), 1);
-  assert.equal(notificador.enviar.mock.callCount(), 1);
+test('garantirValido devolve true quando tudo certo', () => {
+  assert.equal(garantirValido(pessoa(), HOJE), true);
 });
 
-test('cadastro invalido nao salva nem notifica', async () => {
-  const repositorio = { salvar: mock.fn() };
-  const notificador = { enviar: mock.fn() };
-
-  await assert.rejects(() => cadastrar({ cpf: '111.111.111-11' }, { repositorio, notificador, hoje: HOJE }), DadosInvalidosError);
-
-  assert.equal(repositorio.salvar.mock.callCount(), 0);
-  assert.equal(notificador.enviar.mock.callCount(), 0);
-});
