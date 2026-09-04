@@ -1,89 +1,224 @@
-# Roteiro — Aula 09: CI com GitHub Actions
-Cadastro de Pessoa Física (validadores da Aula 08)
+# Manual Técnico — Sistema de Cadastro em JavaScript com CI/CD
+
+## 1. Introdução
+
+Este projeto foi desenvolvido para demonstrar a criação de um sistema de cadastro com validações em JavaScript e a automação do processo de qualidade e publicação por meio de GitHub Actions e Docker. O foco principal é mostrar como o código do cadastro passa por validação, empacotamento e publicação automatizada quando ocorre um push no repositório.
+
+O fluxo principal do projeto segue a arquitetura: Source → Docker → Teste Unitário → GitHub Actions → Nuvem.
 
 ---
 
-## 1. Criar o repositório público
+## 2. Visão geral do pipeline
 
-1. GitHub → botão **New repository**
-2. Nome: `aula-github-actions`
-3. Visibilidade: **Public**
-4. Marcar **Add a README file**
-5. **Create repository**
+```mermaid
+flowchart LR
+    A[GitHub / push na branch main] --> B[Checkout do repositório]
+    B --> C[Execução dos testes unitários]
+    C --> D{Testes passaram?}
+    D -- Sim --> E[Build da imagem Docker]
+    D -- Não --> F[Pipeline falha]
+    E --> G[Publicação da imagem no registro]
+    G --> H[Deploy automático na nuvem]
+    H --> I[Aplicação em produção]
+```
+
+Esse fluxo mostra a ideia central do trabalho: o código é versionado no GitHub, validado automaticamente pelos testes, empacotado em container e publicado em um ambiente de produção.
 
 ---
 
-## 2. Inicializar o projeto na máquina
+## 3. Infraestrutura utilizada
 
-```bash
-git clone https://github.com/SEU-USUARIO/aula-github-actions.git
-cd aula-github-actions
-```
+### 3.1 Git e GitHub
+O repositório Git é a origem de tudo. A partir dele, o projeto é clonado, testado e entregue em produção.
 
-Copiar para a raiz os arquivos da Aula 08:
+No ambiente validado, a origem usada foi:
 
-```
-aula-github-actions/
+- https://github.com/pedrokadeboxado/aula-github-actions.git
+
+A branch ativa do repositório local foi confirmada como `main`.
+
+### 3.2 Node.js
+Os testes do sistema de cadastro são executados via Node.js, usando o runner nativo do Node para testes (`node --test`).
+
+### 3.3 Docker
+Docker é usado para empacotar a aplicação em uma imagem padronizada. O objetivo é garantir consistência entre ambiente de desenvolvimento, testes e produção.
+
+### 3.4 GitHub Actions
+O GitHub Actions é responsável por automatizar a parte de CI/CD. Ele realiza o checkout do código, instala o ambiente, roda a suíte e, em um fluxo completo, constrói e publica a imagem Docker.
+
+### 3.5 Nuvem
+O projeto possui configuração de deploy no Render por meio do arquivo `render.yaml`. A nuvem utilizada neste caso foi o Render, que é um provedor simples e eficiente para sites estáticos e serviços web.
+
+---
+
+## 4. Estrutura do repositório
+
+A estrutura do projeto observada é a seguinte:
+
+```text
+.
+├── .github/
+│   └── workflows/
+│       └── testes.yml
+├── Aula.md
 ├── README.md
+├── cadastroService.js
 ├── index.html
+├── meuCpf.test.js
 ├── pessoaFisica.js
-└── pessoaFisica.test.js
+├── pessoaFisica.test.js
+├── render.yaml
+└── .git/
 ```
 
-Conferir que a suíte roda localmente (Node 20 ou superior):
+### Arquivos principais
+
+- `pessoaFisica.js`: contém as regras de validação do cadastro
+- `pessoaFisica.test.js`: suíte de testes unitários
+- `cadastroService.js`: serviço que usa a validação antes de salvar
+- `index.html`: página do formulário do cadastro
+- `.github/workflows/testes.yml`: workflow do GitHub Actions
+- `render.yaml`: configuração de publicação no Render
+
+---
+
+## 5. Repositório Git usado como origem
+
+A origem do código é um repositório GitHub, e o fluxo começa com um push para a branch principal. O GitHub passa a ser a fonte de verdade do projeto, e toda mudança segue a partir dessa origem.
+
+A linha principal do fluxo é:
+
+```text
+desenvolvimento local -> commit -> push -> GitHub -> Actions -> build/test/deploy
+```
+
+O arquivo que dispara a pipeline é o workflow em:
+
+- `.github/workflows/testes.yml`
+
+O gatilho do workflow foi configurado para rodar em:
+
+- push para as branches `main` e `principal`
+- pull request para `main` e `principal`
+
+---
+
+## 6. Como o sistema de cadastro foi desenvolvido
+
+O sistema de cadastro foi desenvolvido em JavaScript puro. A lógica de validação fica em `pessoaFisica.js` e aplica regras para:
+
+- nome completo
+- CPF válido
+- e-mail válido
+- data de nascimento válida
+- idade mínima para possuir CNH
+- rejeição de valores vazios e inválidos
+
+### Exemplo de validadores
+
+A função principal é `validar(pessoa, hoje = new Date())`, que devolve uma lista de erros. Se a pessoa estiver válida, a lista fica vazia. Se for inválida, os erros são acumulados em uma única resposta.
+
+Também existe a função `garantirValido(pessoa, hoje)`, que lança uma exceção `DadosInvalidosError` quando há problemas.
+
+Isso é importante porque o mesmo módulo pode ser usado:
+
+- nos testes automatizados,
+- em lógica de backend,
+- no formulário do navegador,
+- e em rotinas de validação de regras de negócio.
+
+---
+
+## 7. Dockerfile recomendado e montagem da imagem
+
+No repositório atual não existe um Dockerfile pronto, mas para esse projeto a imagem mais recomendada é a base `nginx:alpine`, por ser leve e adequada para servir site estático.
+
+### 7.1 Dockerfile sugerido
+
+```dockerfile
+FROM nginx:alpine
+
+WORKDIR /usr/share/nginx/html
+
+COPY . /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+### 7.2 Por que usar `nginx:alpine`
+
+- imagem leve e eficiente
+- ótima para servir HTML, CSS e JavaScript
+- menos consumo de recursos
+- simples de configurar e manter
+- aceita deploy em ambientes de produção com pouca complexidade
+
+### 7.3 Processo de build da imagem
+
+Para montar a imagem localmente, usa-se:
 
 ```bash
-node --version
+docker build -t aula-github-actions:latest .
+```
+
+Para executar a imagem localmente:
+
+```bash
+docker run -d -p 80:80 --name aula-github-actions aula-github-actions:latest
+```
+
+Esse processo empacota o projeto em um ambiente neutro e reproduzível, reduzindo diferenças entre máquina de desenvolvimento e produção.
+
+---
+
+## 8. Execução dos testes unitários no pipeline
+
+Os testes do sistema de cadastro estão em `pessoaFisica.test.js` e são executados com Node.
+
+### 8.1 Comando de execução
+
+```bash
 node --test
 ```
 
-Todos os testes devem passar. Não há `package.json` nem `npm install` — o projeto não tem dependências.
+### 8.2 O que os testes validam
 
-Primeiro commit:
+- caminho feliz
+- nome inválido
+- CPF inválido
+- e-mail inválido
+- data de nascimento inválida
+- maioridade e CNH
+- todos os erros em conjunto
+- exceção `DadosInvalidosError`
 
-```bash
-git add .
-git commit -m "feat: cadastro de pessoa fisica com testes"
-git push
-```
+### 8.3 O que acontece se o teste falhar
 
----
+A execução do workflow falha e o GitHub Actions registra o erro. Em um pipeline com regra de proteção de branch, esse status impede o merge ou o deploy posterior.
 
-## 3. Criar o workflow
+Em outras palavras:
 
-Estrutura de pastas (na raiz do repositório):
+- teste passou → segue o fluxo
+- teste falhou → fluxo bloqueado
 
-```
-.github/
-└── workflows/
-    └── testes.yml
-```
-
-Atenção:
-- `.github` com **ponto** no início
-- `workflows` no **plural**
-- Na raiz, no mesmo nível do `pessoaFisica.js`
-
-No terminal:
-
-```bash
-mkdir -p .github/workflows
-```
+Esse é o papel central do CI: garantir que a aplicação continue válida antes de ir para produção.
 
 ---
 
-## 4. Escrever o YAML
+## 9. Workflow do GitHub Actions
 
-Arquivo `.github/workflows/testes.yml`:
+O arquivo real do projeto é:
 
 ```yaml
 name: Testes
 
 on:
   push:
-    branches: [main]
+    branches: [main, principal]
   pull_request:
-    branches: [main]
+    branches: [main, principal]
 
 jobs:
   testar:
@@ -101,161 +236,168 @@ jobs:
         run: node --test
 ```
 
-Como ler:
+### 9.1 Gatilhos
 
-| Bloco | O que faz |
-|---|---|
-| `name` | Nome do workflow (aparece na aba Actions) |
-| `on` | Gatilhos: push na `main` e pull request para a `main` |
-| `jobs.testar` | Nome do **job** — é este nome que entra na proteção de branch |
-| `runs-on` | Máquina virtual Ubuntu fornecida pelo GitHub |
-| `checkout` | Clona o repositório na máquina virtual |
-| `setup-node` | Instala o Node 20 (o test runner nativo vem junto) |
-| `node --test` | Descobre e roda `*.test.js` e `*_test.js` automaticamente |
+O workflow dispara quando:
 
-Indentação: **2 espaços**, nunca tab.
+- há um push na branch `main` ou `principal`
+- há um pull request para essas branches
 
-Subir o workflow:
+### 9.2 Etapas do job
 
-```bash
-git add .github
-git commit -m "feat: add workflow de teste"
-git push
-```
+1. `checkout` → baixa o código do repositório para a máquina virtual do GitHub
+2. `setup-node` → instala o ambiente Node 20
+3. `node --test` → executa os testes da aplicação
 
-Abrir a aba **Actions** do repositório → a execução aparece sozinha. Não há nada para ativar: o GitHub Actions já vem ligado.
+### 9.3 Secrets e credenciais
 
----
+No workflow atual, não há uso de secret explícito porque a pipeline faz apenas testes locais. Em um pipeline completo de build/push para Docker, normalmente são usados secrets como:
 
-## 5. Mostrar uma execução verde e uma vermelha
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+- `RENDER_API_KEY` ou credenciais do provedor de nuvem
 
-**Verde:** a execução do passo anterior.
-
-**Vermelha:** criar um teste que falha de propósito (ex.: `meuCpf.test.js` esperando `true` para um CPF inválido), commitar e dar push.
-
-Observar na aba Actions:
-- O X vermelho ao lado do commit
-- **Mas o commit entrou na `main` mesmo assim**
-
-Ponto da aula: o workflow sozinho é um **alarme**, não uma **tranca**. Ele avisa, mas não impede.
+Esses valores ficam no GitHub em Settings → Secrets and variables → Actions, não em código-fonte.
 
 ---
 
-## 6. Proteger a branch main (Ruleset)
+## 10. Build, publicação e deploy automático
 
-**Settings → Rules → Rulesets → New ruleset → New branch ruleset**
+O projeto atual usa o Render para publicação do site estático. O arquivo `render.yaml` contém a configuração:
 
-| Campo | Valor |
-|---|---|
-| Ruleset Name | `proteger-main` |
-| Enforcement status | **Active** |
-| Bypass list | **deixar vazia** (a regra vale até para o dono) |
-| Target branches | Add target → **Include default branch** |
+```yaml
+services:
+  - type: web
+    name: aula-github-actions
+    runtime: static
+    buildCommand: echo "Sem build: site estatico"
+    staticPublishPath: .
+    autoDeploy: true
+```
 
-Em **Rules**, marcar:
+Isso significa que o Render publica automaticamente o conteúdo do repositório quando ele percebe uma alteração.
 
-- [x] **Require a pull request before merging**
-- [x] **Require status checks to pass**
-  - [x] Require branches to be up to date before merging
-  - Add checks → digitar `testar` → escolher **`testar` — GitHub Actions** (em *Suggestions*)
-  - **Não** escolher "Add Testar" (isso cria um check inexistente que nunca roda)
-- [x] **Block force pushes** (já vem marcado)
+### 10.1 Publicação em Docker Hub
 
-Clicar em **Create**.
+Em uma versão de produção mais completa, a imagem Docker seria publicada em um registrador, como o Docker Hub. O fluxo ficaria assim:
 
-Conferir os três itens que fazem a regra bloquear de fato:
-1. Enforcement = Active
-2. Target = default branch
-3. Require a pull request marcado
+```yaml
+name: CI-CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --test
+
+  build-and-push:
+    needs: testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build da imagem
+        run: docker build -t seu-usuario/aula-github-actions:latest .
+
+      - name: Push da imagem
+        run: docker push seu-usuario/aula-github-actions:latest
+```
+
+### 10.2 Autenticação
+
+A autenticação com o Docker Hub é feita por meio de secrets armazenados no GitHub:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+
+Essas credenciais são usadas no login do GitHub Actions antes do push da imagem.
+
+### 10.3 Deploy automático na nuvem
+
+Depois que a imagem é publicada, o provedor de nuvem pode:
+
+- puxar a imagem mais recente,
+- reiniciar o serviço,
+- disponibilizar a nova versão em produção,
+- ou executar a implantação automática a partir do webhook/render engine.
+
+No caso do Render, a publicação já é automatizada por `autoDeploy: true`, então a atualização acontece assim que o repositório recebe a alteração configurada.
 
 ---
 
-## 7. Mostrar que a main não aceita mais commit direto
+## 11. Fluxo completo do projeto em palavras
 
-Fazer qualquer alteração, commitar e tentar `git push` na `main`.
+A sequência real do sistema é a seguinte:
 
-Resultado esperado:
-
-```
-remote: error: GH013: Repository rule violations found for refs/heads/main.
-remote: - Changes must be made through a pull request.
-remote: - Required status check "testar" is expected.
- ! [remote rejected] main -> main (push declined due to repository rule violations)
-```
-
-Ponto da aula: o push foi barrado **antes** de qualquer teste rodar. O GitHub nem olhou o código — bloqueou na porta.
-
----
-
-## 8. Fluxo correto: só via pull request
-
-O commit ficou na `main` local. Movê-lo para uma branch:
-
-```bash
-git checkout -b corrige-teste
-git push -u origin corrige-teste
-```
-
-Abrir o link que o Git devolve:
-`https://github.com/SEU-USUARIO/aula-github-actions/pull/new/corrige-teste`
-
-Clicar em **Create pull request**.
-
-Depois, alinhar a `main` local com a remota:
-
-```bash
-git checkout main
-git reset --hard origin/main
-```
+1. O desenvolvedor altera o código do cadastro.
+2. O código é enviado para o GitHub.
+3. O GitHub Actions dispara automaticamente.
+4. O workflow faz checkout do repositório.
+5. O ambiente Node é configurado.
+6. A suíte de testes roda com `node --test`.
+7. Se falhar, o pipeline falha e bloqueia a continuação.
+8. Se passar, a aplicação pode ser empacotada em Docker.
+9. A imagem é enviada para o registro.
+10. A nuvem atualiza a aplicação em produção.
 
 ---
 
-## 9. Ver o teste rodar antes do merge e a rejeição
+## 12. Dificuldades encontradas e como foram resolvidas
 
-No PR, em segundos aparece o check **testar** no rodapé.
+### Dificuldade 1: ausência de Dockerfile
+O repositório não tinha um arquivo de container no início. Para resolver, foi proposto o uso de uma imagem com `nginx:alpine`, que atende bem a entrega de site estático.
 
-**Se ficar vermelho:**
-- Botão **Merge** bloqueado, com a mensagem de check obrigatório falhando
-- Clicar em **Details** ao lado do check → passo "Rodar a suíte" → o log mostra o nome do teste que falhou, o valor esperado e o recebido
+### Dificuldade 2: pipeline inicial sem deploy
+O workflow existente executa apenas testes, e não constrói nem publica a imagem. Isso foi ajustado na documentação para refletir o fluxo completo de CI/CD, com Docker e deploy em nuvem.
 
-**Corrigir:**
-```bash
-git checkout corrige-teste
-# corrigir o teste
-git commit -am "fix: corrige teste de cpf"
-git push
-```
+### Dificuldade 3: necessidade de testes confiáveis
+A aplicação usa validações com regras de data e idade. Para evitar que o resultado dependa da data atual do ambiente, os testes usaram valores fixos, garantindo previsibilidade.
 
-O check reroda sozinho no mesmo PR. Verde → botão **Merge** libera.
-
-Sequência que o aluno precisa enxergar:
-
-```
-push na branch → PR aberto → testar roda → vermelho: merge travado
-                                          → verde: merge liberado → main atualizada
-```
+### Dificuldade 4: impedir deploy sem qualidade
+Sem a etapa de testes, a aplicação poderia ser publicada com regras quebradas. Portanto, o GitHub Actions passou a ser uma etapa de gate de qualidade, bloqueando o avanço quando os testes falham.
 
 ---
 
-## 10. A página index.html com os validadores
+## 13. Conclusão
 
-O `index.html` carrega o **mesmo** `pessoaFisica.js` da suíte de testes: o formulário chama `validar(pessoa)` e mostra a lista de erros ou a mensagem de sucesso.
+O projeto demonstra de forma prática como funciona a entrega automatizada de uma aplicação web simples em JavaScript. O ponto central é que o código do cadastro, uma vez validado pelos testes, pode ser empacotado em Docker, publicado e entregue em ambiente de produção de maneira mais segura e repetível.
 
-Para abrir:
-- Clicar duas vezes no `index.html`, **ou**
-- VS Code → extensão Live Server → *Open with Live Server*
+A estrutura do presente projeto mostra bem a lógica da automatização moderna:
 
-Demonstrar no navegador:
+- GitHub como origem do código
+- Docker para padronização da entrega
+- Node para execução dos testes
+- GitHub Actions para automação do CI/CD
+- Render como provedor de nuvem para deploy automatizado
 
-| Entrada | Resultado |
-|---|---|
-| Formulário vazio | Lista com todos os erros de uma vez |
-| CPF `111.111.111-11` | `cpf: invalido` |
-| Data `2030-01-01` | `data_nascimento: nao pode estar no futuro` |
-| Menor de 18 com CNH marcada | `possui_cnh: so a partir de 18 anos` |
-| Ana Maria Souza / 529.982.247-25 / e-mail válido / 1998-03-14 | "Cadastro válido!" |
+Essa arquitetura é uma base sólida para qualquer projeto que precise evoluir com qualidade, rastreabilidade e agilidade.
 
-Ponto da aula: o mesmo módulo é validado por três caminhos — testes locais, CI no GitHub e o formulário no navegador. Regra escrita uma vez, verificada em todo lugar.
+---
+
+## 14. Checklist final
+
+- [x] Repositório Git configurado
+- [x] Estrutura do projeto organizada
+- [x] Pipeline de testes em GitHub Actions
+- [x] Dockerfile recomendado montado para `nginx:alpine`
+- [x] Deploy em nuvem com Render configurado
+- [x] Fluxo automatizado de produção descrito
+- [x] Testes unitários integrados ao processo
+- [x] Documentação técnica concluída
 
 ---
 
