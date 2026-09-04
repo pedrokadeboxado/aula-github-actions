@@ -1,0 +1,45 @@
+name: CI-CD
+
+on:
+  push:
+    branches: [main, principal]
+  pull_request:
+    branches: [main, principal]
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Rodar a suíte
+        run: node --test
+
+  build-e-publicar:
+    needs: testar
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build e push da imagem
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:${{ github.sha }}
