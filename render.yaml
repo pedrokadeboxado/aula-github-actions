@@ -3,6 +3,5 @@ services:
     name: cadastro-pf
     runtime: image
     image:
-      url: docker.io/pedrokadebochado/cadastro-pf:latest
+      url: docker.io/pedrokadeboxado/cadastro-pf:latest
     plan: free
-    autoDeploy: false
