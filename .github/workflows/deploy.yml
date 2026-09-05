@@ -43,3 +43,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:${{ github.sha }}
+
+      - name: Disparar deploy no Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
