@@ -1,7 +1,8 @@
 services:
   - type: web
-    name: aula-github-actions
-    runtime: static
-    buildCommand: echo "Sem build: site estatico"
-    staticPublishPath: .
-    autoDeploy: true
+    name: cadastro-pf
+    runtime: image
+    image:
+      url: docker.io/pedrokadebochado/cadastro-pf:latest
+    plan: free
+    autoDeploy: false
