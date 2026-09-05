@@ -46,3 +46,13 @@ jobs:
 
       - name: Disparar deploy no Render
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+        
+              - name: Build e push da imagem
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          provenance: false
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/cadastro-pf:${{ github.sha }}
