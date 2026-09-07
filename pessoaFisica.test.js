@@ -52,7 +52,7 @@ describe('cpf', () => {
   }
 
   test('valido: com ou sem mascara', () => {
-    assert.equal(cpfValido('529.982.247-25'), false);
+    assert.equal(cpfValido('529.982.247-25'), true);
     assert.equal(cpfValido('52998224725'), true);
   });
 });
